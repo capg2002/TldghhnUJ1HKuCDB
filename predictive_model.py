@@ -80,7 +80,7 @@ scores_full = cross_validate(
     X_full,
     Y_var,
     cv=cv,
-    scoring=["accuracy", "precision", "balanced_accuracy", "recall", "f1", "roc_auc", "neg_log_loss", "d2_brier_score"]
+    scoring=["accuracy", "precision", "balanced_accuracy", "recall", "f1", "roc_auc", "neg_log_loss"]
 )
 
 scores_reduced = cross_validate(
@@ -88,7 +88,7 @@ scores_reduced = cross_validate(
     X_reduced,
     Y_var,
     cv=cv,
-    scoring=["accuracy", "precision", "balanced_accuracy", "recall", "f1", "roc_auc", "neg_log_loss", "d2_brier_score"]
+    scoring=["accuracy", "precision", "balanced_accuracy", "recall", "f1", "roc_auc", "neg_log_loss"]
 )
 
 scores_full_names = list(scores_full.keys())

@@ -43,7 +43,7 @@ en_search = GridSearchCV(
         "logistic__C": C_grid,
         "logistic__l1_ratio": l1_ratio_grid
     },
-    scoring=["accuracy", "precision", "balanced_accuracy", "recall", "f1", "roc_auc", "neg_log_loss", "d2_brier_score"],
+    scoring=["accuracy", "precision", "balanced_accuracy", "recall", "f1", "roc_auc", "neg_log_loss", "neg_brier_score"],
     refit="neg_log_loss",
     cv=cv,
     n_jobs=-1,
