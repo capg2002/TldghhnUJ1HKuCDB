@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
+import itertools as it
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_validate, cross_val_predict, GridSearchCV, StratifiedKFold, FixedThresholdClassifier
+from sklearn.model_selection import cross_validate, cross_val_predict, GridSearchCV, StratifiedKFold, RepeatedStratifiedKFold, FixedThresholdClassifier
 
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.naive_bayes import CategoricalNB
@@ -41,6 +42,14 @@ seed = 67
 
 X_train, X_test, Y_train, Y_test = train_test_split(X_full, Y_var, test_size = 0.2, random_state=seed)
 
+def iterate_subsets(iterable):
+    s = list(iterable)
+    # Loop through all possible lengths of subsets
+    for r in range(1,(len(s) + 1)):
+        # Generate and yield subsets of length r
+        for subset in it.combinations(s, r):
+            yield subset
+
 lda_pipeline = Pipeline([
     (
         "scale",
@@ -57,6 +66,12 @@ lda_pipeline = Pipeline([
 shrinkage_grid = [ # Grid setup to test different shrinkage constants
     0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
 ]
+
+outer_cv = RepeatedStratifiedKFold(
+    n_splits = 5,
+    n_repeats = 3,
+    random_state = 68
+)
 
 inner_cv = StratifiedKFold(
     n_splits=5,
@@ -493,4 +508,166 @@ comparison = pd.DataFrame({
 print(
     comparison.round(3)
 )
+outer_lda_results = []
+outer_nb_results = []
 
+for train_index, test_index in outer_cv.split(X_full, Y_var):
+        
+        X_train_val, X_test_val = X_full.iloc[train_index], X_full.iloc[test_index]
+        Y_train_val, Y_test_val = Y_var.iloc[train_index], Y_var.iloc[test_index]
+
+        lda_subset_scores = []
+        nb_subset_scores = []
+
+        for sub in iterate_subsets(X_train_val.columns):
+
+            X_train_sub, X_test_sub = X_train_val.loc[:, sub], X_test_val.loc[:, sub]
+
+            lda_search.fit(
+                X_train_sub,
+                Y_train_val
+            )
+
+            lda_subset_scores.append({
+                "subset": sub,
+                "score": lda_search.best_score_,
+                "model": lda_search.best_estimator_,
+                "params": lda_search.best_params_
+            })
+
+            feature_cols = list(
+                X_train_sub.columns
+            )
+
+            # Categories for each variable
+
+            likert_categories = [
+                [1, 2, 3, 4, 5]
+                for feature in feature_cols
+            ]
+
+            categorical_nb_pipeline = Pipeline([
+                (
+                    "encode",
+                    OrdinalEncoder( # Type of column, encoding with Likert categories
+                        categories=likert_categories,
+                        dtype=np.int64
+                    )
+                ),
+                (
+                    "nb",
+                    CategoricalNB( # Categorical Naive Bayes function
+                        min_categories=5
+                    )
+                )
+            ])
+
+            nb_search = GridSearchCV(
+                estimator=categorical_nb_pipeline,
+
+                param_grid={
+                    "nb__alpha": alpha_grid
+                },
+
+                scoring="accuracy",
+                cv=inner_cv,
+                refit=True,
+                n_jobs=-1,
+                return_train_score=True
+            )
+
+            nb_search.fit(
+                X_train_sub,
+                Y_train_val
+            )
+
+            nb_subset_scores.append({
+                "subset": sub,
+                "score": nb_search.best_score_,
+                "model": nb_search.best_estimator_,
+                "params": nb_search.best_params_
+            })
+
+        best_lda_subset = max(
+            lda_subset_scores,
+            key=lambda result: (
+                result["score"],
+                -len(result["subset"])
+            )
+        )
+
+        best_nb_subset = max(
+            nb_subset_scores,
+            key=lambda result: (
+                result["score"],
+                -len(result["subset"])
+            )
+        )
+
+        lda_test_val_pred = best_lda_subset[
+            "model"
+        ].predict(
+            X_test_val.loc[
+                :, best_lda_subset["subset"]
+            ]
+        )
+
+        outer_lda_results.append({
+            "subset": best_lda_subset["subset"],
+            "params": best_lda_subset["params"],
+            "accuracy": accuracy_score(
+                Y_test_val, lda_test_val_pred
+            )
+        })
+
+        nb_test_val_pred = best_nb_subset[
+            "model"
+        ].predict(
+            X_test_val.loc[
+                :, best_nb_subset["subset"]
+            ]
+        )
+
+        outer_nb_results.append({
+            "subset": best_nb_subset["subset"],
+            "params": best_nb_subset["params"],
+            "accuracy": accuracy_score(
+                Y_test_val, nb_test_val_pred
+            )
+        })
+
+lda_outer_df = pd.DataFrame(
+    outer_lda_results
+)
+nb_outer_df = pd.DataFrame(
+    outer_nb_results
+)
+
+print(
+    lda_outer_df["accuracy"].describe()
+)
+print(
+    nb_outer_df["accuracy"].describe()
+)
+
+print(
+    lda_outer_df["subset"].value_counts()
+)
+print(
+    nb_outer_df["subset"].value_counts()
+)
+
+accuracy_difference = (
+    nb_outer_df["accuracy"]
+    - lda_outer_df["accuracy"]
+)
+print(accuracy_difference.describe())
+
+# print(nb_best_params)
+# print(lda_best_params)
+
+# Categorical Naive Bayes achieved the highest performance on the held-out test set, 
+# with an accuracy of 0.769 and ROC AUC of 0.840. However, repeated nested cross-validation 
+# showed substantial variability, with mean accuracy near 0.56–0.57 for both models. The average 
+# difference between the two models was less than one percentage point, indicating that neither 
+# method demonstrated consistently superior out-of-sample accuracy across resamples.
