@@ -41,7 +41,7 @@ X_test_reduced = X_test[["X1", "X2", "X5"]]
 
 # Ideal model threshold from predictive model exploration
 
-model_threshold = 0.62
+model_threshold = 0.55
 
 reduced_model = LogisticRegression() 
 
@@ -409,3 +409,15 @@ for class_index, class_value in enumerate(
             f"P(X1 = {original_response} | "
             f"Y = {class_value}) = {probability:.4f}"
         )
+
+# The final submitted models are as follows with respect to accuracy:
+
+# Naive Bayes (nb_search) is relatively similar when comparing the reduced and full models,
+# with X1 consistently having the highest accuracy,
+# showcasing the predictive power of X1. It yields the highest accuracy of 0.7692.
+
+# Thus, to maximize accuracy, this model is recommended, though its success is volatile.
+
+# If more information should be preserved without an independence assumption,
+# though the accuracy is lower (mean accuracy at 0.6034), the logistic regression 
+# more consistently obtains accuracies around 0.60 than the Naive Bayes model. 

@@ -16,17 +16,23 @@ from sklearn.metrics import (
     log_loss
 )
 
+# Loading data
+
 survey_df = pd.read_csv('ACME-HappinessSurvey2020.csv')
 X = survey_df[["X1", "X2", "X3", "X4", "X5", "X6"]]
 y = survey_df["Y"]
+
+# Testing the full and reduced models
 
 candidate_subsets = {
     "Full": ["X1", "X2", "X3", "X4", "X5", "X6"],
     "Reduced": ["X1", "X2", "X5"]
 }
 
-# Search a reasonable range around 0.50 and your observed optimum.
+# Search a reasonable range around 0.50 and the observed optimum
 threshold_grid = np.arange(0.40, 0.751, 0.01)
+
+# Test repeatedly
 
 outer_cv = RepeatedStratifiedKFold(
     n_splits=5,
@@ -36,10 +42,7 @@ outer_cv = RepeatedStratifiedKFold(
 
 outer_results = []
 
-for outer_evaluation, (outer_train_idx, outer_test_idx) in enumerate(
-    outer_cv.split(X, y),
-    start=1
-):
+for outer_evaluation, (outer_train_idx, outer_test_idx) in enumerate(outer_cv.split(X, y), start = 1):
     X_outer_train = X.iloc[outer_train_idx]
     X_outer_test = X.iloc[outer_test_idx]
 
@@ -55,10 +58,12 @@ for outer_evaluation, (outer_train_idx, outer_test_idx) in enumerate(
     best_choice = None
     best_tie_breaking_key = None
 
-    # Select feature set and threshold using outer-training data only.
+    # Select feature set and threshold using outer-training data only
     for subset_name, columns in candidate_subsets.items():
 
-        # Accuracy values for every candidate threshold.
+        # Maximizing accuracy
+
+        # Accuracy values for every candidate threshold
         threshold_scores = {
             threshold: []
             for threshold in threshold_grid
@@ -76,17 +81,16 @@ for outer_evaluation, (outer_train_idx, outer_test_idx) in enumerate(
             y_inner_train = y_outer_train.iloc[inner_train_idx]
             y_inner_validation = y_outer_train.iloc[inner_validation_idx]
 
+            # Fitting inner model
+
             inner_model = LogisticRegression(
                 max_iter=2000
             )
-
             inner_model.fit(X_inner_train, y_inner_train)
-
             validation_probabilities = inner_model.predict_proba(
                 X_inner_validation
             )[:, 1]
 
-            # No need to refit the model for each threshold.
             for threshold in threshold_grid:
                 validation_predictions = (
                     validation_probabilities >= threshold
@@ -98,7 +102,8 @@ for outer_evaluation, (outer_train_idx, outer_test_idx) in enumerate(
                         validation_predictions
                     )
                 )
-
+        
+        # Mean inner accuracy
         for threshold, fold_scores in threshold_scores.items():
             mean_inner_accuracy = np.mean(fold_scores)
 
@@ -123,7 +128,7 @@ for outer_evaluation, (outer_train_idx, outer_test_idx) in enumerate(
                     "inner_accuracy": mean_inner_accuracy
                 }
 
-    # Refit the selected model on the entire outer training set.
+    # Refit the selected model on the entire outer training set
     selected_columns = best_choice["columns"]
     selected_threshold = best_choice["threshold"]
 
@@ -211,3 +216,5 @@ print(outer_results["threshold"].describe())
 
 print("\nComplete results:")
 print(outer_results)
+
+# Mean threshold is 0.55. Thus, this was chosen for the final model. 

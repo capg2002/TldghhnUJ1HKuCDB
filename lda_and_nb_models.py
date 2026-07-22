@@ -34,6 +34,8 @@ from sklearn.metrics import (
 import statsmodels.api as sm
 from scipy.stats import chi2
 
+# Loading dataset
+
 survey_df = pd.read_csv('ACME-HappinessSurvey2020.csv')
 Y_var = survey_df["Y"]
 X_full = survey_df[["X1", "X2", "X3", "X4", "X5", "X6"]]
@@ -49,6 +51,14 @@ def iterate_subsets(iterable):
         # Generate and yield subsets of length r
         for subset in it.combinations(s, r):
             yield subset
+
+# LDA was chosen in the hopes that it could better estimate the
+# underlying prior distributions when Y = 0 and when Y = 1.
+
+# LDA assumes a multivariate Normal distribution for the priors,
+# which is not likely to be the case, given they're categorical and a small sample.
+
+# Regardless, LDA could work well.
 
 lda_pipeline = Pipeline([
     (
@@ -66,6 +76,8 @@ lda_pipeline = Pipeline([
 shrinkage_grid = [ # Grid setup to test different shrinkage constants
     0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0
 ]
+
+# Defining cross validation processes
 
 outer_cv = RepeatedStratifiedKFold(
     n_splits = 5,
@@ -234,7 +246,8 @@ print(
     )
 )
 
-### Naive Bayes model, assuming independent answers given an observation for Y
+### Naive Bayes model, assuming independent answers given an observation for Y, but this
+# model works directly with categorical variables.
 
 feature_cols = list(
     X_train.columns
@@ -287,7 +300,7 @@ nb_search.fit(
     Y_train
 )
 
-# Best alpha is a = 2
+# Best alpha is a = 0.25
 print(
     "Best alpha:",
     nb_search.best_params_["nb__alpha"]
@@ -303,7 +316,7 @@ nb_test_prob = nb_search.predict_proba(
 
 print("\nCATEGORICAL NAIVE BAYES")
 
-# Accuracy is 0.730769, which is above adequate 
+# Accuracy is 0.76923, which is above adequate (greater than 0.73)
 
 print(
     "Accuracy:",

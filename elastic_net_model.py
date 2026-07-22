@@ -11,6 +11,13 @@ from sklearn.model_selection import (
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+# Elastic net experimented with following logistic regression, to see
+# what loss function would maximize accuracy. In the end, it was not used,
+# as it complicated the modelling process and did not yield a significantly 
+# higher accuracy. 
+
+# This file was left here to show the process was considered.
+
 survey_df = pd.read_csv('ACME-HappinessSurvey2020.csv')
 Y_var = survey_df["Y"]
 X_full = survey_df[["X1", "X2", "X3", "X4", "X5", "X6"]]
