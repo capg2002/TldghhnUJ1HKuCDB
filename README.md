@@ -33,3 +33,9 @@ The **reduced logistic regression using `X1`, `X2`, and `X5` with a 0.55 thresho
 Categorical Naive Bayes should be kept as an alternative model for future testing because it showed the potential for higher accuracy, but more data would be needed before concluding that it performs better consistently. 
 
 The Categorical Naive Bayes model scored an accuracy above **76.9%**, while the reduced logistic regression scored an accuracy, on average, around **60.0%**, which is lower than the expected threshold of 73%, but might be easier to implement in the future. 
+
+### Significant Variables
+
+Analysis comparing the full model to reduced models in the logistic regression suggests that `X1`, `X2`, and `X5` are statistically significant variables when predicting Y, compared to when including the other variables. This suggests that **On-time arrivals, expected contents, and satisfaction with the courier** are key predictors when predicting whether or not a customer was happy.
+
+Within the Naive Bayes model, `X1` alone yielded the highest accuracy, suggesting **On-time arrivals** is the most statistically significant predictor when predicting Y. 
